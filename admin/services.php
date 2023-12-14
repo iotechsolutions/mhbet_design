@@ -9,17 +9,34 @@ include_once('../php/Service.php');
 //Call the Info class
 $serviceObj = new Service();
 //Save Info
+if (isset($_POST['Save']) || isset($_POST['Update'])) {
+    $paths = [];
+    $images = [];
+    $pathOlds = [];
+    if (($_FILES['data1']['name']) != null) {
+        $path1 = str_replace(' ', '', $_FILES['data1']['name']);
+        array_push($paths, $path1);
+        $image1 = $_FILES['data1']["tmp_name"];
+        array_push($images, $image1);
+    } else {
+        $path1 = "";
+        array_push($paths, $path1);
+        array_push($images, "");
+    }
+    $oldPath1 = $_POST["oldPath1"];
+}
+
 if (isset($_POST['Save'])) {
     $name = isset($_POST["Name"]) ? $_POST["Name"] : "";
     $description = $_POST["Description"];
-    $serviceObj->addService($name, $description);
+    $serviceObj->addService($name, $description, $paths, $images);
 }
 //Update Info
 if (isset($_POST['Update'])) {
     $id = $_POST["idUpdate"];
     $name = $_POST["nameUpdate"];
     $description = $_POST["descriptionUpdate"];
-    $serviceObj->updateService($id, $name, $description);
+    $serviceObj->updateService($id, $name, $description, $paths, $images, $pathOlds);
 }
 ?>
 <!-- MAIN -->
@@ -72,7 +89,7 @@ if (isset($_POST['Update'])) {
                                             <td><?php echo ++$index; ?></td>
                                             <td><?php echo $service['name']; ?></td>
                                             <td><?php echo $service['description']; ?></td>
-                                            <td> <a href="#update" data-toggle="modal" name="Set" data-id=<?php echo $service['id']; ?> data-name=<?php echo $service['name']; ?> data-description=<?php echo $service['description']; ?> class="modal-trigger" title="show" style="margin-left:auto; " onclick="openUpdate()"><i class="fa fa-edit" style="color: black"></i></a></td>
+                                            <td> <a href="#update" data-toggle="modal" name="Set" data-id=<?php echo $service['id']; ?> data-name=<?php echo $service['name']; ?> data-description=<?php echo $service['description']; ?> data-path1=<?php echo $service['Path1']; ?> class="modal-trigger" title="show" style="margin-left:auto; " onclick="openUpdate()"><i class="fa fa-edit" style="color: black"></i></a></td>
                                         </tr>
                                     <?php } ?>
                                 </tbody>
@@ -92,6 +109,8 @@ if (isset($_POST['Update'])) {
                     </div>
                     <div class="panel-body">
                         <form method="post" enctype="multipart/form-data" action="services.php">
+                        <label style="font-weight:100"> Image 1 (Main) </label>
+                            <input type="file" class="form-control" placeholder="Image 1" name="data1" required><br>
                             <input type="text" class="form-control" placeholder="Name" name="Name" required><br>
                             <textarea class="form-control" name="Description" placeholder="Description" rows="4" required></textarea><br>
                             <div class="navbar-btn-right">
@@ -117,6 +136,12 @@ if (isset($_POST['Update'])) {
                     <div class="panel-body">
                         <form method="post" enctype="multipart/form-data" action="services.php">
                             <input type="text" class="form-control" id="id" placeholder="id" name="idUpdate"> <br>
+                            <div>
+                                <img id="path1" src="" style="width:-webkit-fill-available" />
+                                <input type="file" id="" class="form-control" placeholder="Image 1" name="data1"><br>
+                                <input type="text" id="oldPath1" class="form-control" placeholder="Image 1" name="oldPath1" style="display:none;"><br>
+                            </div>
+
                             <label>Title</label>
                             <input type="text" class="form-control" id="title" placeholder="Title" name="nameUpdate"> <br>
                             <label>Description</label>
@@ -161,6 +186,10 @@ if (isset($_POST['Update'])) {
         $(".modal-content #id").val($(this).data('id'));
         $("#title").val($(this).data('name'));
         $("#description").val($(this).data('description'));
+        $("#path1").attr('src', $(this).data('path1'));
+
+        $("#oldPath1").val($(this).data('path1'));
+
     });
 </script>
 <div class="clearfix"></div>

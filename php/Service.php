@@ -15,31 +15,79 @@ class Service
 	}
 	
 	//Send tip about a potential member
-	public function addService($name, $description)
+	public function addService($name, $description, $paths, $images)
 	{
-		$sql = "INSERT INTO `services`(`name`, `description`) VALUES(?,?)";
-		$result = $this->con->prepare($sql)->execute([$name, $description]);
+		$uploadDir = "../photo/service/";
+		// Handle path parameters
+		$fileNames = [];
+		foreach ($paths as $index => $path) {
+			$fileName = $uploadDir . $path;
+			$fileNames[$index] = $fileName;
+		}
+
+		$sql = "INSERT INTO `services`(`name`, `description`, Path1) VALUES(?,?,?)";
+		$params = array_merge([$name, $description], $fileNames);
+		// Execute the SQL query
+		$stmt = $this->con->prepare($sql);
+		$result = $stmt->execute($params);
+		// Handle image uploads
 		if ($result) {
-			echo "<script>alert('Added Successfully!');
-				document.location = '/admin/services.php' </script>";
-				
+			foreach ($images as $index => $image) {
+				if ($image != null && $image != "") {
+					move_uploaded_file($image, $fileNames[$index]) or die("Cannot copy uploaded file");
+				}
+			}
+			echo "<script>alert('Added Successfully!');</script>";
+			// document.location = '../admin/projects.php' </script>";
 		} else {
 			echo "<script>alert('Adding Failed! Please check your connection');
-				document.location = '/admin/services.php' </script>";
+			document.location = '../admin/projects.php' </script>";
 		}
 	}
-	public function updateService($ID, $name, $description)
+	public function updateService($ID, $name, $description, $paths, $images, $pathOlds)
 	{
-	
-		$sql = "UPDATE `services` SET `name` =?, `description`=? WHERE `ID` =?";
-		$result = $this->con->prepare($sql)->execute([$name, $description, $ID]);
-		if ($result) {
-				echo "<script>alert('Updated Successfully!');
-				document.location = '/admin/services.php' </script>";
+		$uploadDir = "../photo/service/";
+		// Handle path parameters
+		$fileNames = [];
+		foreach ($paths as $index => $path) {
+			if ($path != "" && !strpos($path, $uploadDir)) {
+				$fileName = $uploadDir . $path;
+				$fileNames[$index] = $fileName;
 			} else {
-				echo "<script>alert('Update Failed! Please check your coonection.');
-				document.location = '/admin/services.php' </script>";
+				$fileNames[$index] = $pathOlds[$index];
 			}
+		}
+		$sql = "UPDATE `services` SET `name` =?, `description`=?";
+		for ($i = 1; $i <= count($fileNames); $i++) {
+			$sql .= ", `Path{$i}` = ?";
+			
+		}
+		$sql .= " WHERE `id` = ?";
+		echo $sql;
+		// Combine all parameters, including $fileNames and $ID
+		$params = array_merge([$name, $description], $fileNames, [$ID]);
+		$stmt = $this->con->prepare($sql);
+		$result = $stmt->execute($params);
+		// Handle image uploads and deletions
+		if ($result) {
+			foreach ($images as $index => $image) {
+				if ($image != null && $image != "") {
+					echo $index;
+					move_uploaded_file($image, $fileNames[$index]) or die("Cannot copy uploaded file");
+				}
+			}
+			// Unlink old files that are no longer needed
+			foreach ($pathOlds as $oldPath) {
+				if (!in_array($oldPath, $fileNames) && file_exists($oldPath)) {
+					unlink($oldPath);
+				}
+			}
+			echo "<script>alert('Updated Successfully!');</script>";
+			// document.location = '../admin/projects.php' </script>";
+		} else {
+			echo "<script>alert('Update Failed! Please check your connection.');
+			document.location = '../admin/projects.php' </script>";
+		}
 	}
 	public function removeService($ID)
 	{
